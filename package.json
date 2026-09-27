@@ -1,0 +1,16 @@
+{
+  "name": "accesibilidad-mvp",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "express": "^5.1.0",
+    "mammoth": "^1.12.1",
+    "multer": "^2.2.0",
+    "pdf-parse": "^2.4.5",
+    "playwright": "^1.52.0"
+  }
+}

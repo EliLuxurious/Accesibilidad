@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Evaluador Funcional de Accesibilidad</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px 40px;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 40px; }
+        
+        .step-container {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        h2 { margin-top: 0; color: var(--text); font-size: 1.25rem; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+        h3 { font-size: 1rem; color: #475569; margin-top: 15px; margin-bottom: 10px; }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        
+        button.btn-sm { padding: 5px 10px; font-size: 0.8rem; }
+        button:hover { background: var(--primary-hover); }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        input[type="text"], input[type="file"], select {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 10px;
+        }
+
+        .config-block {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .config-block label { display: block; margin-bottom: 5px; }
+
+        .table-container { overflow-x: auto; margin-top: 20px; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        th { background: #f1f5f9; font-weight: 600; }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: white;
+            display: inline-block;
+            margin-bottom: 4px;
+        }
+        .bg-success { background: var(--success); }
+        .bg-warning { background: var(--warning); color: #000; }
+        .bg-danger { background: var(--danger); }
+        .bg-gray { background: #64748b; }
+        .bg-info { background: var(--info); }
+        .bg-purple { background: #8b5cf6; }
+
+        .result-box {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            position: relative;
+        }
+        
+        .incomplete-warning {
+            font-size: 0.9rem;
+            color: var(--warning);
+            display: block;
+            margin-top: 5px;
+        }
+
+        .summary-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            text-align: center;
+            flex: 1;
+            min-width: 150px;
+        }
+        .stat-card span { display: block; font-size: 2rem; font-weight: bold; }
+        .stat-card small { display: block; font-size: 0.75rem; color: #64748b; margin-top: 5px; }
+        
+        /* Modal Styles */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0; top: 0; width: 100%; height: 100%; 
+            background-color: rgba(0,0,0,0.5); 
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 800px;
+            border-radius: 8px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover { color: black; }
+        ul.flow-list { list-style-type: none; padding-left: 0; }
+        ul.flow-list li { margin-bottom: 10px; padding: 10px; border-left: 4px solid var(--info); background: #f8fafc; }
+        .indent { padding-left: 20px; }
+        
+        .lang-selector {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="lang-selector">
+        <label for="langSelect">Idioma / Language:</label>
+        <select id="langSelect" onchange="changeLanguage(this.value)">
+            <option value="es">Español</option>
+            <option value="en">English</option>
+        </select>
+    </div>
+
+    <h1 data-i18n="title">Evaluador Funcional de Accesibilidad - ISO/IEC 25010</h1>
+
+    <div class="step-container">
+        <h2 data-i18n="step1">Paso 1: Analizar Documento SRS</h2>
+        <label for="fileSrs" style="display:block; margin-bottom: 5px;" data-i18n="srsFileLabel">Seleccione documento SRS:</label>
+        <input type="file" id="fileSrs" accept=".docx,.pdf">
+        <br>
+        <button onclick="analyzeSrs()" id="btnSrs" data-i18n="btnSrs">Analizar SRS</button>
+        <div id="resSrs" aria-live="polite" style="margin-top: 15px; display: none;">
+            <strong data-i18n="functionsDetected">Funciones detectadas (B21_SRS): </strong> <span id="b21Count">0</span>
+        </div>
+    </div>
+
+    <div class="step-container" id="step2" style="opacity: 0.5; pointer-events: none;">
+        <h2 data-i18n="step2">Paso 2: Abrir Sistema e Iniciar Sesión</h2>
+        <label for="urlInput" style="display:block; margin-bottom: 5px;" data-i18n="urlLabel">URL del sistema a evaluar:</label>
+        <input type="text" id="urlInput" value="https://pucp.katsula.com/#/login" placeholder="URL del sistema" data-i18n-placeholder="urlPlaceholder">
+        <br>
+        <button onclick="openBrowser()" id="btnBrowser" data-i18n="btnBrowser">1. Abrir Navegador</button>
+        <button onclick="confirmSession()" id="btnSession" disabled data-i18n="btnSession">2. Confirmar Sesión Iniciada</button>
+        <div id="resBrowser" aria-live="polite" style="margin-top: 15px; color: var(--success); display: none;" data-i18n="browserReady">Navegador listo.</div>
+    </div>
+
+    <div class="step-container" id="step3" style="opacity: 0.5; pointer-events: none;">
+        <h2 data-i18n="step3">Paso 3: Descubrir Módulos y Emparejar</h2>
+        <button onclick="discoverAndMatch()" id="btnDiscover" data-i18n="btnDiscover">Descubrir y Emparejar</button>
+    </div>
+
+    <div class="step-container" id="step4" style="opacity: 0.5; pointer-events: none;">
+        <h2 data-i18n="step4">Paso 4: Configurar y Ejecutar Evaluación de Tareas</h2>
+        
+        <div class="config-block">
+            <h3 data-i18n="rigorTitle">Nivel de rigor de evaluación WCAG 2.2</h3>
+            <p data-i18n="rigorSubtitle" style="margin-bottom: 15px;">El usuario seleccionará el nivel mínimo requerido:</p>
+            
+            <label for="rigorD" style="display:flex; align-items:flex-start; margin-bottom:15px;"><input type="radio" id="rigorD" name="rigorLevel" value="D" style="margin-top:5px;"> 
+                <div style="margin-left: 10px;">
+                    <strong data-i18n="rigorD">D · Básico</strong><br>
+                    <small style="color:#475569;" data-i18n="rigorD_desc">- Cumplimiento WCAG esperado: 0% - 49%<br>- Criterios mínimos cumplidos: 0 - 7 de 15 criterios<br>- Tipo de evaluación: Evaluación exploratoria automática</small>
+                </div>
+            </label>
+            
+            <label for="rigorC" style="display:flex; align-items:flex-start; margin-bottom:15px;"><input type="radio" id="rigorC" name="rigorLevel" value="C" checked style="margin-top:5px;"> 
+                <div style="margin-left: 10px;">
+                    <strong data-i18n="rigorC">C · Medio</strong><br>
+                    <small style="color:#475569;" data-i18n="rigorC_desc">- Cumplimiento WCAG esperado: 50% - 74%<br>- Criterios mínimos cumplidos: 8 - 11 de 15 criterios<br>- Tipo de evaluación: Evaluación funcional + Axe + revisión ARIA</small>
+                </div>
+            </label>
+
+            <label for="rigorB" style="display:flex; align-items:flex-start; margin-bottom:15px;"><input type="radio" id="rigorB" name="rigorLevel" value="B" style="margin-top:5px;"> 
+                <div style="margin-left: 10px;">
+                    <strong data-i18n="rigorB">B · Alto</strong><br>
+                    <small style="color:#475569;" data-i18n="rigorB_desc">- Cumplimiento WCAG esperado: 75% - 89%<br>- Criterios mínimos cumplidos: 12 - 13 de 15 criterios<br>- Tipo de evaluación: Pruebas repetitivas avanzadas + simulación de interacción</small>
+                </div>
+            </label>
+
+            <label for="rigorA" style="display:flex; align-items:flex-start; margin-bottom:15px;"><input type="radio" id="rigorA" name="rigorLevel" value="A" style="margin-top:5px;"> 
+                <div style="margin-left: 10px;">
+                    <strong data-i18n="rigorA">A · Muy alto</strong><br>
+                    <small style="color:#475569;" data-i18n="rigorA_desc">- Cumplimiento WCAG esperado: 90% - 100%<br>- Criterios mínimos cumplidos: 14 - 15 de 15 criterios<br>- Tipo de evaluación: Evaluación automatizada completa + pruebas humanas asistidas</small>
+                </div>
+            </label>
+        </div>
+
+<!-- Perfil select removed. Evaluates all profiles automatically. -->
+
+        <div class="config-block">
+            <h3 data-i18n="modeTitle">Modo de Ejecución:</h3>
+            <ul style="list-style-type: none; padding-left: 0; margin-top: 10px;">
+                <li data-i18n="modeWrite">✓ WRITE habilitado automáticamente.</li>
+                <li data-i18n="modeEnv">✓ Ambiente controlado.</li>
+                <li data-i18n="modeEvid">✓ Registro completo de evidencias.</li>
+            </ul>
+        </div>
+
+        <button onclick="evaluateSystem()" id="btnEval" data-i18n="btnEval">Ejecutar Evaluación de Funciones</button>
+        <div id="evalProgress" aria-live="polite" style="margin-top:10px; font-weight: bold; color: var(--info);"></div>
+    </div>
+
+    <div class="step-container" id="step5" style="display: none;">
+        <h2 data-i18n="step5">Paso 5: Resultados y Trazabilidad (Métrica 21)</h2>
+        
+        <div class="result-box" style="text-align: left; font-size: 1.1rem; line-height: 1.6;">
+            <h3 style="margin-top:0;" data-i18n="m21Title">MÉTRICA 21</h3>
+            <p style="margin: 0; color: #64748b;" data-i18n="m21Desc">Accesibilidad para usuarios con discapacidad</p>
+            <p><strong data-i18n="m21Profile">Perfil evaluado:</strong> <span id="valPerfil">Visual</span></p>
+
+            <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin: 15px 0;">
+                <p><strong data-i18n="m21A">A — Funciones utilizadas con éxito:</strong> <span id="valA21">0</span></p>
+                <p><strong data-i18n="m21B">B — Funciones implementadas:</strong> <span id="valB21">0</span></p>
+                
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
+                
+                <h4 style="margin: 0 0 10px 0;" data-i18n="calc">CÁLCULO:</h4>
+                <p style="margin:0; font-family: monospace; font-size: 1.2rem;">X21 = A / B</p>
+                <p style="margin:0; font-family: monospace; font-size: 1.2rem; font-weight: bold; color: var(--primary);">X21 = <span id="valFraction">0 / 0</span></p>
+                
+                <div style="margin-top: 15px; display: flex; gap: 20px; font-size: 0.95rem;">
+                    <div><strong data-i18n="decimal">Resultado decimal:</strong> <span id="valDecimal">0.0000</span></div>
+                    <div><strong data-i18n="percentage">Equivalente porcentual:</strong> <span id="valPorcentaje">0.00%</span></div>
+                    <div><strong data-i18n="status">Estado:</strong> <span id="valEstado" style="font-weight: bold; padding: 2px 6px; border-radius: 4px;" data-i18n="statusPrelim">PRELIMINAR</span></div>
+                </div>
+            </div>
+
+            <div id="rangoContainer" style="font-size: 0.9rem; margin-bottom: 15px;">
+                <strong data-i18n="range">Rango provisional:</strong> <span id="valRangoFraction">0 / 0 a 0 / 0</span> <span style="color: #64748b; margin-left: 10px;" id="valRangoPct">(0.00% a 0.00%)</span>
+            </div>
+
+            <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                <h4 style="margin: 0 0 10px 0;" data-i18n="howTo">¿Cómo se calcula?</h4>
+                <p style="margin:0; font-size: 0.9rem;" data-i18n="howToA"><strong>A</strong> = funciones accesibles confirmadas (sin barreras funcionales bloqueantes para el perfil).</p>
+                <p style="margin:0; font-size: 0.9rem;" data-i18n="howToB"><strong>B</strong> = funciones implementadas en el alcance (comprobadas en la etapa de emparejamiento).</p>
+            </div>
+        </div>
+        
+        <div class="summary-stats">
+            <div class="stat-card" style="text-align: left;">
+                <h4 style="margin: 0 0 10px 0;" data-i18n="auxData">Datos Auxiliares</h4>
+                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; line-height: 1.5;">
+                    <li><span data-i18n="b21Srs">Funciones requeridas por SRS (B21_SRS):</span> <strong id="valB21Srs">0</strong></li>
+                    <li><span data-i18n="bAux">Funciones implementadas confirmadas (B):</span> <strong id="valB_aux">0</strong></li>
+                    <li><span data-i18n="aAux">Funciones accesibles confirmadas (A):</span> <strong id="valA_aux">0</strong></li>
+                    <li><span data-i18n="barriers">Funciones con barrera:</span> <strong id="valBarrera">0</strong></li>
+                    <li><span data-i18n="inconclusive">Funciones inconclusas:</span> <strong id="valInconclusas">0</strong></li>
+                    <li><span data-i18n="techError">Funciones con error técnico:</span> <strong id="valError">0</strong></li>
+                    <li><span data-i18n="roleNoConf">Funciones no confirmadas en el rol:</span> <strong id="valRolNoConf">0</strong></li>
+                    <li><span data-i18n="evalCount">Funciones evaluadas concluyentemente:</span> <strong id="valFuncEval">0</strong></li>
+                </ul>
+            </div>
+            <div class="stat-card" style="text-align: left;">
+                <h4 style="margin: 0 0 10px 0;" data-i18n="coverages">Coberturas</h4>
+                <p style="margin-bottom: 5px;"><strong data-i18n="cobImp">Cobertura implementación:</strong> <span id="valCobImpFrac">0 / 0</span> (<span id="valCobImp">0%</span>)</p>
+                <p style="margin:0;"><strong data-i18n="cobEva">Cobertura evaluación:</strong> <span id="valCobEvaFrac">0 / 0</span> (<span id="valCobEva">0%</span>)</p>
+            </div>
+        </div>
+
+        <div class="table-container" style="margin-top: 30px;">
+            <table id="finalTable">
+                <thead>
+                    <tr>
+                        <th data-i18n="thRF">Función</th>
+                        <th data-i18n="thWcagCump">Criterios WCAG cumplidos</th>
+                        <th data-i18n="thWcagPct">% WCAG</th>
+                        <th data-i18n="thNivelAlc">Nivel alcanzado</th>
+                        <th data-i18n="thNivelSol">Nivel solicitado</th>
+                        <th data-i18n="thResM21">Resultado M21</th>
+                        <th data-i18n="thFlow">Ver flujo</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        </div>
+    </div>
+
+    <div class="step-container" id="step6" style="display: none;">
+        <h2 data-i18n="step6">Paso 6: Resultados Métrica 22 y Global</h2>
+        
+        <div class="result-box" style="text-align: left; font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px;">
+            <h3 style="margin-top:0;" data-i18n="m22Title">MÉTRICA 22: Idiomas Admitidos</h3>
+            
+            <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin: 15px 0;">
+                <p><strong data-i18n="m22Req">Idiomas requeridos (B):</strong> <span id="valB22">0</span></p>
+                <p><strong data-i18n="m22Avail">Idiomas disponibles (A):</strong> <span id="valA22">0</span> <small>(<span id="valLocales"></span>)</small></p>
+                
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
+                
+                <h4 style="margin: 0 0 10px 0;" data-i18n="calc">CÁLCULO:</h4>
+                <p style="margin:0; font-family: monospace; font-size: 1.2rem;">X22 = A / B</p>
+                <p style="margin:0; font-family: monospace; font-size: 1.2rem; font-weight: bold; color: var(--primary);">X22 = <span id="valPct22">0%</span></p>
+            </div>
+        </div>
+
+        <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="margin-top:0;" data-i18n="wcagValidationTitle">Validación WCAG 2.2 (Idiomas)</h4>
+            <table style="width: 100%; background: white;">
+                <thead>
+                    <tr><th>Criterio</th><th>Resultado (1/0)</th></tr>
+                </thead>
+                <tbody id="wcagTable"></tbody>
+            </table>
+        </div>
+
+        <div class="result-box" style="text-align: center; background-color: var(--primary); color: white;">
+            <h3 style="margin-top:0; color: white;" data-i18n="globalAccessTitle">ACCESIBILIDAD GLOBAL (M21 + M22) / 2</h3>
+            <span id="valGlobalAccess" style="font-size: 3rem;">0%</span>
+        </div>
+    </div>
+    
+    <div id="detailModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()" aria-label="Close" tabindex="0" role="button">&times;</span>
+            <h2 id="modalTitle" data-i18n="modalTitle">Trazabilidad de la Tarea</h2>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
